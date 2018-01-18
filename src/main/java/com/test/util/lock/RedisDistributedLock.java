@@ -39,17 +39,17 @@ public class RedisDistributedLock extends AbstractDistributedLock{
 			endLine = now + millis;
 		}
 		String lockValue = UUID.randomUUID().toString();
-		long setnx = 0;
-		while(now <= endLine && setnx == 0){
+		String setnx = "0";
+		while(now <= endLine && !"OK".equals(setnx)){
 			/* 在指定的 key 不存在时，为 key 设置指定的值
 			 * 设置成功，返回 1 ; 设置失败，返回 0 
 			 */
-			setnx = jedisCluster.setnx(lockKey, lockValue);
-			if(setnx == 1){
-				jedisCluster.expire(lockKey, expire);
+			setnx = jedisCluster.set(lockKey, lockValue, "NX", "EX", expire);
+			//setnx = jedisCluster.setnx(lockKey, lockValue);
+			if("OK".equals(setnx)){
 				return lockValue;
 			}
-			if(setnx == 0){
+			if(!"OK".equals(setnx)){
 				//等待1s
 				LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
 				now = System.currentTimeMillis();
